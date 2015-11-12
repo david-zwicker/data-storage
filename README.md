@@ -1,2 +1,2 @@
-# hdf5-cache
-Cache storing results from calculations in python
+# cache-hdf5
+Cache storing results from calculations in python using hdf5
