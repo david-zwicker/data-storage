@@ -10,6 +10,6 @@ from .base import StorageBase
 
 
 
-class StorageMemory(dict, StorageBase):
+class StorageMemory(StorageBase, dict):
     """ manages a cache that stores data in a dictionary """
     pass

@@ -44,13 +44,12 @@ def cached(storage):
     def cached_decorator(func):
         @functools.wraps(func)
         def func_wrapper(*args, **kwargs):
-            key = storage.get_key(args, kwargs)
             try:
-                return storage.retrieve(key, arg, kwargs)[0] #< only return data array
+                return storage.retrieve(args, kwargs)[0] #< only return data array
             except KeyError:
-                result = function(*args, **kwargs)
-                storage.store(key, result, args=args, kwargs=kwargs)
-                return value
+                result = func(*args, **kwargs)
+                storage.store(result, args=args, kwargs=kwargs)
+                return result
         return func_wrapper
     return cached_decorator
 
