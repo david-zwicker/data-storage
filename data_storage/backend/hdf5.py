@@ -72,6 +72,20 @@ class StorageHDF5(StorageBase):
     def __len__(self):
         """ return length of the storage """
         return len(self._index)
+
+
+    def _get_values_from_dataset(self, dataset):
+        data_array = dataset[()]
+        packed_arguments = dataset.attrs['arguments']
+        args, kwargs = self._unpack_arguments(packed_arguments)
+        return data_array, args, kwargs
+
+
+    def itervalues(self):
+        """ iterates through all values """
+        with h5py.File(self.filename, 'r') as db:
+            for _, dataset in db.iteritems():
+                yield self._get_values_from_dataset(dataset)
                
                 
     def __getitem__(self, key):
@@ -79,14 +93,11 @@ class StorageHDF5(StorageBase):
         name = self._index[key]
         
         with h5py.File(self.filename, 'r') as db:
-            data = db[name]
-            data_array = data[()]
-            packed_arguments = data.attrs['arguments']
+            result = self._get_values_from_dataset(db[name])
 
-        logging.debug('Loaded item `%s` from hdf file: %s', name, data)
+        logging.debug('Loaded item `%s` from hdf file', name)
         
-        args, kwargs = self._unpack_arguments(packed_arguments)
-        return data_array, args, kwargs
+        return result
 
 
     def __setitem__(self, key, data):

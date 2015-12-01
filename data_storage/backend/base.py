@@ -18,7 +18,7 @@ import json
 class StorageBase(object):
     """ base functionality of a cache manager
     This class is an abstract base class, which must be subclassed. Required
-    methods to overwrite are __getitem__ and __setitem__, which have to 
+    methods to overwrite are __getitem__, __setitem__, __iter__, which have to 
     return/accept a tuple (result, args, kwargs). 
     """
     
@@ -43,7 +43,6 @@ class StorageBase(object):
         key = self.get_key(args, kwargs)
         logging.debug('Want to store key `%s`', key)
         self[key] = (result, args, kwargs)
-
-
+        
 
         
