@@ -41,6 +41,31 @@ class TestFunctionCache(unittest.TestCase):
         self.assertEqual(a, b)
         self.assertEqual(len(self.storage), 1)        
         
+        c = square(2, 2)
+        self.assertNotEqual(a, c)
+        self.assertEqual(len(self.storage), 2)        
+        
+        
+    def test_ignore_args(self):
+        """ test ignoring some of the arguments """
+        
+        self.assertEqual(len(self.storage), 0)
+        
+        @cached(self.storage, ignore_kwargs=['y'])
+        def square(x, y):
+            return x**2
+        
+        a = square(2, y=1)
+        self.assertEqual(len(self.storage), 1)
+        
+        b = square(2, y=2)
+        self.assertEqual(a, b)
+        self.assertEqual(len(self.storage), 1)        
+        
+        c = square(3, 2)
+        self.assertNotEqual(a, c)
+        self.assertEqual(len(self.storage), 2)        
+        
         
         
 class TestFunctionCacheHDF5(TestFunctionCache):
