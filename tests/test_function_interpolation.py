@@ -10,7 +10,7 @@ import unittest
 import tempfile
 
 from data_storage import StorageMemory, interpolated
-from data_storage.backend.hdf5 import StorageHDF5 
+from data_storage.backend.hdf5 import StorageHDF5
 
 
       
@@ -113,7 +113,7 @@ class TestFunctionInterpolation(unittest.TestCase):
         
         
     def test_ignore_kwargs(self):
-        """ test a simple function with keyword arguments """
+        """ test a simple function with keyword arguments that are ignored """
         
         self.assertEqual(len(self.storage), 0)
         

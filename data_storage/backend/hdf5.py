@@ -44,28 +44,16 @@ class StorageHDF5(StorageBase):
         self._index = {}
                   
           
-    def _pack_arguments(self, args=None, kwargs=None):        
-        """ convert supplied arguments to something that can be easily stored
-        as hdf5 """ 
-        return json.dumps((args, kwargs))          
-
-
-    def _unpack_arguments(self, arguments):
-        """ convert read arugments to a tuple of arguments that can be compared
-        to supplied input """        
-        args_kwargs = json.loads(arguments)
-        if len(args_kwargs) != 2:
-            raise ValueError('Loaded arguments were not valid')
-        return args_kwargs
-
-          
     def _update_index(self):
         """ update the index from the database """
         logging.debug('Start reading the index from the hdf file')
         with h5py.File(self.filename, 'r') as db:
             self._index = {}
-            for name, data in db.iteritems():
-                self._index[data.attrs['arguments']] = name
+            for name, dataset in db.iteritems():
+                args = json.loads(dataset.attrs['args'])
+                kwargs = json.loads(dataset.attrs['kwargs'])
+                key = self.get_key(args, kwargs)
+                self._index[key] = name
         logging.debug('Found %d items in the hdf file', len(self))
         
         
@@ -74,10 +62,11 @@ class StorageHDF5(StorageBase):
         return len(self._index)
 
 
-    def _get_values_from_dataset(self, dataset):
+    def _retrieve_dataset(self, dataset):
+        """ returns the (result, args, kwargs) from a hdf5 dataset """
         data_array = dataset[()]
-        packed_arguments = dataset.attrs['arguments']
-        args, kwargs = self._unpack_arguments(packed_arguments)
+        args = json.loads(dataset.attrs['args'])
+        kwargs = json.loads(dataset.attrs['kwargs'])
         return data_array, args, kwargs
 
 
@@ -85,7 +74,7 @@ class StorageHDF5(StorageBase):
         """ iterates through all values """
         with h5py.File(self.filename, 'r') as db:
             for _, dataset in db.iteritems():
-                yield self._get_values_from_dataset(dataset)
+                yield self._retrieve_dataset(dataset)
                
                 
     def __getitem__(self, key):
@@ -93,7 +82,7 @@ class StorageHDF5(StorageBase):
         name = self._index[key]
         
         with h5py.File(self.filename, 'r') as db:
-            result = self._get_values_from_dataset(db[name])
+            result = self._retrieve_dataset(db[name])
 
         logging.debug('Loaded item `%s` from hdf file', name)
         
@@ -107,7 +96,6 @@ class StorageHDF5(StorageBase):
             raise IOError('Cannot write to readonly database')
         
         data_array, args, kwargs = data
-        packed_arguments = self._pack_arguments(args, kwargs)
         
         # determine the name of the key 
         name0 = str(hash(key))
@@ -123,11 +111,11 @@ class StorageHDF5(StorageBase):
                 
             # store the result
             dataset = db.create_dataset(name, data=np.asarray(data_array))
-            dataset.attrs['key'] = key
-            dataset.attrs['arguments'] = packed_arguments
+            dataset.attrs['args'] = json.dumps(args)
+            dataset.attrs['kwargs'] = json.dumps(kwargs)
         
         # add the dataset to the index
-        self._index[packed_arguments] = name
+        self._index[key] = name
         
         logging.debug('Stored item `%s` to hdf file', name)
 
