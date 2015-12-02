@@ -46,6 +46,48 @@ class TestFunctionCache(unittest.TestCase):
         self.assertEqual(len(self.storage), 2)        
         
         
+    def test_clear(self):
+        """ test clearing the cache """
+        
+        self.assertEqual(len(self.storage), 0)
+        
+        @cached(self.storage)
+        def square(x):
+            return x**2
+        
+        square(2)
+        self.assertEqual(len(self.storage), 1)
+        
+        self.storage.clear()
+        self.assertEqual(len(self.storage), 0)
+        
+        square(2)
+        self.assertEqual(len(self.storage), 1)
+        
+        
+    def test_clear_kwargs(self):
+        """ test clearing the cache for particular keywords """
+        
+        self.assertEqual(len(self.storage), 0)
+        
+        @cached(self.storage)
+        def square(x, e=2):
+            return x**e
+        
+        square(2, e=2)
+        self.assertEqual(len(self.storage), 1)
+        square(2, e=3)
+        self.assertEqual(len(self.storage), 2)
+        
+        self.storage.clear(kwargs={'e': 2})
+        self.assertEqual(len(self.storage), 1)
+        
+        square(2, e=3)
+        self.assertEqual(len(self.storage), 1)        
+        square(2, e=2)
+        self.assertEqual(len(self.storage), 2)        
+        
+        
     def test_ignore_args(self):
         """ test ignoring some of the arguments """
         

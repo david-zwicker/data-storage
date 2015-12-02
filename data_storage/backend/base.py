@@ -10,6 +10,7 @@ read data.
 '''
 
 import logging
+import time
 
 import json
 
@@ -41,8 +42,34 @@ class StorageBase(object):
     def store(self, result, args=None, kwargs=None):
         """ store data based on given arguments """
         key = self.get_key(args, kwargs)
+        internal_data = {'time_stored': time.time()}
         logging.debug('Want to store key `%s`', key)
-        self[key] = (result, args, kwargs)
+        self[key] = (result, args, kwargs, internal_data)
+       
+        
+    def iterdata(self, kwargs):
+        """ iterates through all data that is stored with the given kwargs """
+        for value in self.itervalues():
+            c_result, c_args, c_kwargs, _ = value
+            if c_kwargs == kwargs:
+                yield c_result, c_args, c_kwargs
+        
+        
+    def clear(self, time_max=None, kwargs=None):
+        """ clears all items from the storage that have been saved before the
+        given time `time_max`. If `time_max` is None, all the data is remove
+        """
+        remove = []
+        for key, value in self.iteritems():
+            _, _, c_kwargs, c_internal_data = value
+            delete_item = ((time_max is None
+                            or c_internal_data['time_stored'] < time_max)
+                           and (kwargs is None or c_kwargs == kwargs)) 
+            if delete_item:
+                remove.append(key)
+
+        for key in remove:
+            del self[key]
         
 
         

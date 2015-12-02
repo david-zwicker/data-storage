@@ -45,6 +45,11 @@ class StorageHDF5(StorageBase):
 
         os.remove(self.filename)
         self._index = {}
+        
+        
+    def repack(self):
+        """ rewrite the hdf5 file to make sure deleted data is removed """
+        raise NotImplementedError 
                   
           
     def update_index(self):
@@ -53,6 +58,8 @@ class StorageHDF5(StorageBase):
         with h5py.File(self.filename, 'r') as db:
             self._index = {}
             for name, dataset in db.iteritems():
+                if dataset.attrs.get('deleted', False):
+                    continue
                 args = json.loads(dataset.attrs['args'])
                 kwargs = json.loads(dataset.attrs['kwargs'])
                 key = self.get_key(args, kwargs)
@@ -65,12 +72,21 @@ class StorageHDF5(StorageBase):
         return len(self._index)
 
 
-    def _retrieve_dataset(self, dataset):
+    def _retrieve_dataset(self, dataset, with_internal=True):
         """ returns the (result, args, kwargs) from a hdf5 dataset """
+        
+        if dataset.attrs.get('deleted', False):
+            raise KeyError('Dataset has been deleted')
+        
         data_array = dataset[()]
         args = json.loads(dataset.attrs['args'])
         kwargs = json.loads(dataset.attrs['kwargs'])
-        return data_array, args, kwargs
+        
+        if with_internal:
+            internal_data = json.loads(dataset.attrs['internal_data'])
+            return data_array, args, kwargs, internal_data
+        else: 
+            return data_array, args, kwargs
 
 
     def itervalues(self):
@@ -80,13 +96,20 @@ class StorageHDF5(StorageBase):
                 yield self._retrieve_dataset(dataset)
                
                 
+    def iteritems(self):
+        """ iterates through all values """
+        with h5py.File(self.filename, 'r') as db:
+            for key, name in self._index.iteritems():
+                yield key, self._retrieve_dataset(db[name])
+               
+                
     def __getitem__(self, key):
         """ retrieve data from hdf5 file """
         name = self._index[key]
         
         with h5py.File(self.filename, 'r') as db:
             result = self._retrieve_dataset(db[name])
-
+            
         logging.debug('Loaded item `%s` from hdf file', name)
         
         return result
@@ -98,7 +121,7 @@ class StorageHDF5(StorageBase):
         if self.readonly:
             raise IOError('Cannot write to readonly database')
         
-        data_array, args, kwargs = data
+        data_array, args, kwargs, internal_data = data
         
         # determine the name of the key 
         name0 = str(hash(key))
@@ -116,9 +139,26 @@ class StorageHDF5(StorageBase):
             dataset = db.create_dataset(name, data=np.asarray(data_array))
             dataset.attrs['args'] = json.dumps(args)
             dataset.attrs['kwargs'] = json.dumps(kwargs)
+            dataset.attrs['internal_data'] = json.dumps(internal_data)
         
         # add the dataset to the index
         self._index[key] = name
         
         logging.debug('Stored item `%s` to hdf file', name)
+
+
+    def __delitem__(self, key):
+        """ delete item with given key """ 
+        if self.readonly:
+            raise IOError('Cannot modify a readonly database')
+
+        name = self._index[key]
+        
+        with h5py.File(self.filename, 'a') as db:
+            db[name].attrs['deleted'] = True
+
+        del self._index[key]
+
+        logging.debug('Deleted item `%s` from hdf file', name)
+
 

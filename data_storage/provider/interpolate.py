@@ -91,10 +91,9 @@ class interpolated(object):
             points = []
             values = []
             
-            for c_result, c_args, c_kwargs in self.storage.itervalues():
-                if c_kwargs == kwargs:
-                    points.append(np.array(c_args))
-                    values.append(c_result)
+            for c_result, c_args, _ in self.storage.iterdata(kwargs):
+                points.append(np.array(c_args))
+                values.append(c_result)
                     
             self._interpolator = Interpolator(points, values)
             
