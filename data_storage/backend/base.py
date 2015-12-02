@@ -24,6 +24,7 @@ class StorageBase(object):
     """
     
     def __init__(self, typed_keys=False, strict_keys=False):
+        """ initialize the storage object """
         super(StorageBase, self).__init__()
 
 

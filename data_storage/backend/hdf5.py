@@ -23,12 +23,22 @@ from .base import StorageBase
 class StorageHDF5(StorageBase):
     """ manages a cache that is stored in a hdf5 file """
 
-    def __init__(self, database_file, readonly=False, truncate=False):
-        """ initialize the cache """
+    def __init__(self, database_file, readonly=False, truncate=False,
+                 temporary=False):
+        """ initialize the hdf5 database
+        
+        `database_file` denotes the filename where the database is stored
+        `readonly` is a flag determining whether the database is readonly
+        `truncate` is a flag determining whether the database will be cleared
+            before usage
+        `temporary` indicates whether the database file will be deleted when the
+            objects is deleted
+        """
         super(StorageHDF5, self).__init__()
         
         self.readonly = readonly
         self.filename = database_file
+        self.temporary = temporary
                 
         if truncate:
             h5py.File(self.filename, 'w').close()
@@ -38,15 +48,30 @@ class StorageHDF5(StorageBase):
         # build the index of the database
         self._index = {}
         self.update_index()
+        
+        
+    def __del__(self):
+        """ called before the object is destroyed """
+        if self.temporary:
+            logging.debug('Delete the database file')
+            os.remove(self.filename)
           
-          
-    def delete_file(self):
-        """ deletes the hdf5 file and thus clears the cache completely """
-        if self.readonly:
-            raise IOError('Cannot delete readonly database')
 
-        os.remove(self.filename)
-        self._index = {}
+    def clear(self, time_max=None, kwargs=None):
+        """ clears all items from the storage that have been saved before the
+        given time `time_max`. If `time_max` is None, all the data is remove
+        """
+        if self.readonly:
+            raise IOError('Cannot clear readonly database')
+
+        if time_max is None and kwargs is None:
+            # the database will be emptied
+            h5py.File(self.filename, 'w').close()
+            self._index = {}
+            
+        else:
+            # potentially only a part of the database will be affected 
+            super(StorageHDF5, self).clear(time_max, kwargs)
         
         
     def repack(self):
@@ -57,10 +82,14 @@ class StorageHDF5(StorageBase):
         # generate temporary file and associated storage
         file_tmp = tempfile.NamedTemporaryFile(suffix='.hdf5', delete=False)
         storage_tmp = StorageHDF5(file_tmp.name, truncate=True)
+
+        logging.debug('Created temporary database at `%s`', file_tmp.name)
         
         # copy all data to temporary storage
         for value in self.itervalues():
             storage_tmp.store(*value)
+
+        logging.debug('Copied data to temporary database')
             
         # copy temporary file to location of this file
         os.remove(self.filename)
@@ -68,6 +97,8 @@ class StorageHDF5(StorageBase):
         
         # copy index of temporary storage to current object
         self._index = storage_tmp._index
+
+        logging.debug('Substituted current database by the temporary one')
         
           
     def update_index(self):
@@ -115,14 +146,14 @@ class StorageHDF5(StorageBase):
                
                 
     def iteritems(self):
-        """ iterates through all values """
+        """ iterates through all keys and values """
         with h5py.File(self.filename, 'r') as db:
             for key, name in self._index.iteritems():
                 yield key, self._retrieve_dataset(db[name])
                
                 
     def __getitem__(self, key):
-        """ retrieve data from hdf5 file """
+        """ retrieve data with given `key` from hdf5 file """
         name = self._index[key]
         
         with h5py.File(self.filename, 'r') as db:
@@ -134,7 +165,7 @@ class StorageHDF5(StorageBase):
 
 
     def __setitem__(self, key, data):
-        """ store new data in the hdf5 file """
+        """ store new `data` in the hdf5 file with a given `key` """
         if self.readonly:
             raise IOError('Cannot write to readonly database')
         
@@ -167,7 +198,7 @@ class StorageHDF5(StorageBase):
     def __delitem__(self, key):
         """ delete item with given key """ 
         if self.readonly:
-            raise IOError('Cannot modify a readonly database')
+            raise IOError('Cannot delete from a readonly database')
 
         name = self._index[key]
         
