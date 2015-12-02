@@ -9,6 +9,8 @@ from __future__ import division
 import logging
 import itertools
 import os
+import shutil
+import tempfile
 
 import numpy as np
 import h5py
@@ -49,8 +51,24 @@ class StorageHDF5(StorageBase):
         
     def repack(self):
         """ rewrite the hdf5 file to make sure deleted data is removed """
-        raise NotImplementedError 
-                  
+        if self.readonly:
+            raise IOError('Cannot repack readonly database')
+        
+        # generate temporary file and associated storage
+        file_tmp = tempfile.NamedTemporaryFile(suffix='.hdf5', delete=False)
+        storage_tmp = StorageHDF5(file_tmp.name, truncate=True)
+        
+        # copy all data to temporary storage
+        for value in self.itervalues():
+            storage_tmp.store(*value)
+            
+        # copy temporary file to location of this file
+        os.remove(self.filename)
+        shutil.move(file_tmp.name, self.filename)
+        
+        # copy index of temporary storage to current object
+        self._index = storage_tmp._index
+        
           
     def update_index(self):
         """ update the index from the database """
@@ -76,7 +94,7 @@ class StorageHDF5(StorageBase):
         """ returns the (result, args, kwargs) from a hdf5 dataset """
         
         if dataset.attrs.get('deleted', False):
-            raise KeyError('Dataset has been deleted')
+            raise KeyError('Dataset `%s` has been deleted' % dataset.name)
         
         data_array = dataset[()]
         args = json.loads(dataset.attrs['args'])
@@ -92,8 +110,8 @@ class StorageHDF5(StorageBase):
     def itervalues(self):
         """ iterates through all values """
         with h5py.File(self.filename, 'r') as db:
-            for _, dataset in db.iteritems():
-                yield self._retrieve_dataset(dataset)
+            for name in self._index.itervalues():
+                yield self._retrieve_dataset(db[name])
                
                 
     def iteritems(self):
@@ -117,7 +135,6 @@ class StorageHDF5(StorageBase):
 
     def __setitem__(self, key, data):
         """ store new data in the hdf5 file """
-        
         if self.readonly:
             raise IOError('Cannot write to readonly database')
         

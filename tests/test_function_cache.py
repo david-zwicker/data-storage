@@ -6,6 +6,7 @@ Created on Nov 7, 2015
 
 from __future__ import division
 
+import os
 import unittest
 import tempfile
 
@@ -49,8 +50,6 @@ class TestFunctionCache(unittest.TestCase):
     def test_clear(self):
         """ test clearing the cache """
         
-        self.assertEqual(len(self.storage), 0)
-        
         @cached(self.storage)
         def square(x):
             return x**2
@@ -67,8 +66,6 @@ class TestFunctionCache(unittest.TestCase):
         
     def test_clear_kwargs(self):
         """ test clearing the cache for particular keywords """
-        
-        self.assertEqual(len(self.storage), 0)
         
         @cached(self.storage)
         def square(x, e=2):
@@ -90,8 +87,6 @@ class TestFunctionCache(unittest.TestCase):
         
     def test_ignore_args(self):
         """ test ignoring some of the arguments """
-        
-        self.assertEqual(len(self.storage), 0)
         
         @cached(self.storage, ignore_kwargs=['y'])
         def square(x, y):
@@ -123,4 +118,32 @@ class TestFunctionCacheHDF5(TestFunctionCache):
     def tearDown(self):
         """ finalize tests """
         self.storage.delete_file()
+        
+    
+    def test_repacke(self):
+        """ test repacking the database """
+        
+        @cached(self.storage)
+        def square(x, e=2):
+            return x**e
+        
+        square(2, e=2)
+        self.assertEqual(len(self.storage), 1)
+        square(2, e=3)
+        self.assertEqual(len(self.storage), 2)
+        
+        self.storage.repack()
+        self.assertEqual(len(self.storage), 2)
+        
+        self.storage.clear(kwargs={'e': 2})
+        self.assertEqual(len(self.storage), 1)
+
+        size1 = os.stat(self.storage.filename).st_size
+        self.storage.repack()
+        size2 = os.stat(self.storage.filename).st_size
+        self.assertEqual(len(self.storage), 1)
+        
+        self.assertGreater(size1, size2)
+        
+    
 

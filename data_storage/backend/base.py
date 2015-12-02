@@ -39,12 +39,16 @@ class StorageBase(object):
         return self[key]
 
     
-    def store(self, result, args=None, kwargs=None):
+    def store(self, result, args=None, kwargs=None, internal_data=None):
         """ store data based on given arguments """
         key = self.get_key(args, kwargs)
-        internal_data = {'time_stored': time.time()}
+        
+        extra_data = {'time_stored': time.time()}
+        if internal_data:
+            extra_data.update(internal_data)
+        
         logging.debug('Want to store key `%s`', key)
-        self[key] = (result, args, kwargs, internal_data)
+        self[key] = (result, args, kwargs, extra_data)
        
         
     def iterdata(self, kwargs):
