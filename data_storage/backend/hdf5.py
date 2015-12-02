@@ -33,18 +33,21 @@ class StorageHDF5(StorageBase):
         else:
             h5py.File(self.filename, 'a').close()
 
-        # read the index from the database
+        # build the index of the database
         self._index = {}
-        self._update_index()
+        self.update_index()
           
           
     def delete_file(self):
         """ deletes the hdf5 file and thus clears the cache completely """
+        if self.readonly:
+            raise IOError('Cannot delete readonly database')
+
         os.remove(self.filename)
         self._index = {}
                   
           
-    def _update_index(self):
+    def update_index(self):
         """ update the index from the database """
         logging.debug('Start reading the index from the hdf file')
         with h5py.File(self.filename, 'r') as db:
