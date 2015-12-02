@@ -142,10 +142,6 @@ class TestFunctionInterpolationHDF5(TestFunctionInterpolation):
     def setUp(self):
         """ initialize tests """
         file_tmp = tempfile.NamedTemporaryFile(suffix='hdf5', delete=False)
-        self.storage = StorageHDF5(file_tmp.name, truncate=True) 
+        self.storage = StorageHDF5(file_tmp.name, temporary=True) 
         
         
-    def tearDown(self):
-        """ finalize tests """
-        self.storage.delete_file()
-
