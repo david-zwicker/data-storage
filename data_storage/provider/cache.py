@@ -5,12 +5,18 @@ Created on Nov 2, 2015
 '''
 
 import functools
+
+from ..backend.memory import StorageMemory
       
       
 
-def cached(storage, ignore_kwargs=None):
+def cached(storage=None, ignore_kwargs=None):
     """ function that caches the result of the decorated function in the
     supplied storage provider """
+    
+    if storage is None:
+        storage = StorageMemory()
+    
     def cached_decorator(func):
         
         @functools.wraps(func)

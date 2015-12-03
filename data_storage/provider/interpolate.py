@@ -12,6 +12,8 @@ import functools
 import numpy as np
 from scipy import interpolate, spatial
 
+from ..backend.memory import StorageMemory
+
 
 
 class Interpolator(object):
@@ -71,10 +73,13 @@ class interpolated(object):
     the values that are supplied by as positional arguments.    
     """
     
-    def __init__(self, storage, max_distance=1, ignore_kwargs=None):
+    def __init__(self, storage=None, max_distance=1, ignore_kwargs=None):
         """ initialize the decorator with a storage class and a cutoff distance
         determining the minimal distance to the closest support point """
-        self.storage = storage
+        if storage is None:
+            self.storage = StorageMemory()
+        else:
+            self.storage = storage
         self.max_distance = max_distance
         self.ignore_kwargs = ignore_kwargs
         

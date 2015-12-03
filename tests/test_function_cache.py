@@ -11,7 +11,7 @@ import unittest
 import tempfile
 
 from data_storage import StorageMemory, cached
-from data_storage.backend.hdf5 import StorageHDF5 
+from data_storage.backend.hdf5 import StorageHDF5
 
 
 
@@ -42,6 +42,27 @@ class SimpleResult(object):
         return self.__dict__ == other.__dict__    
 
 
+      
+class TestSimplestUsesage(unittest.TestCase):
+    """ test caches using a simple dictionary as the storage backend """
+
+    _multiprocess_can_split_ = True #< let nose know that tests can run parallel
+    
+    
+    def test_simple(self):
+        """ test a simple function """
+        
+        @cached()
+        def square(x):
+            return x**2
+        
+        a = square(2)
+        self.assertEqual(a, square(2))
+        
+        b = square(3)
+        self.assertNotEqual(a, b)
+      
+      
       
 class TestFunctionCache(unittest.TestCase):
     """ test caches using a simple dictionary as the storage backend """
@@ -192,5 +213,4 @@ class TestFunctionCacheHDF5(TestFunctionCache):
         
         self.assertGreater(size1, size2)
         
-    
 
