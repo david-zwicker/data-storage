@@ -60,3 +60,6 @@ target/
 # Eclipse
 .project
 .pydevproject
+
+# Mac
+.DS_Store
