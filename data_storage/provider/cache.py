@@ -5,6 +5,7 @@ Created on Nov 2, 2015
 '''
 
 import functools
+import logging
 
 from ..backend.memory import StorageMemory
       
@@ -31,6 +32,7 @@ def cached(storage=None, ignore_kwargs=None):
             try:
                 return storage.retrieve(args, kwargs_cache)[0]
             except KeyError:
+                logging.debug('Calculate function because of missed cache')
                 result = func(*args, **kwargs)
                 storage.store(result, args=args, kwargs=kwargs_cache)
                 return result

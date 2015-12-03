@@ -112,6 +112,9 @@ class StorageHDF5(StorageBase):
                 args = json.loads(dataset.attrs['args'])
                 kwargs = json.loads(dataset.attrs['kwargs'])
                 key = self.get_key(args, kwargs)
+                if key in self._index:
+                    logging.warn('Database contains key `%s` more than once.',
+                                 key)
                 self._index[key] = name
         logging.debug('Found %d items in the hdf file', len(self))
         

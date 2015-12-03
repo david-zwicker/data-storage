@@ -118,20 +118,24 @@ class TestFunctionCache(unittest.TestCase):
         
         @cached(self.storage)
         def square(x, e=2):
+            if e is None:
+                e = 1
             return x**e
         
         square(2, e=2)
         self.assertEqual(len(self.storage), 1)
         square(2, e=3)
         self.assertEqual(len(self.storage), 2)
+        square(2, e=None)
+        self.assertEqual(len(self.storage), 3)
         
         self.storage.clear(kwargs={'e': 2})
-        self.assertEqual(len(self.storage), 1)
+        self.assertEqual(len(self.storage), 2)
         
         square(2, e=3)
-        self.assertEqual(len(self.storage), 1)        
-        square(2, e=2)
         self.assertEqual(len(self.storage), 2)        
+        square(2, e=2)
+        self.assertEqual(len(self.storage), 3)        
         
         
     def test_ignore_args(self):

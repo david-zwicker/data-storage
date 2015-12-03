@@ -11,6 +11,7 @@ read data.
 
 import logging
 import time
+import sys
 
 import json
 
@@ -50,9 +51,18 @@ class StorageBase(object):
         
         if 'obj_class' in extra_data:
             # recreate the obj from storage
-            module =  import_module(extra_data['obj_module'])
-            cls = getattr(module, extra_data['obj_class'])
-            result = cls.storage_retrieve(data_array, extra_data['obj_props'])
+            try:
+                module =  import_module(extra_data['obj_module'])
+                cls = getattr(module, extra_data['obj_class'])
+                result = cls.storage_retrieve(data_array,
+                                              extra_data['obj_props'])
+            except KeyError:
+                # reraise KeyError as different exception to distinguish it from
+                # data key not existing
+                e_type, e_value, traceback = sys.exc_info()
+                args = ("Format of stored data is unexpected", e_type, e_value)
+                raise (ValueError, args, traceback)
+            
         else:
             # assume that a simple numpy array was stored
             result = data_array
