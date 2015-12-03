@@ -15,6 +15,15 @@ import time
 import json
 
         
+        
+def import_module(path):
+    """ imports a whole module path """
+    module = __import__(path)
+    for name in path.split(".")[1:]:
+        module = getattr(module, name)
+    return module        
+        
+        
 
 class StorageBase(object):
     """ base functionality of a cache manager
@@ -37,7 +46,18 @@ class StorageBase(object):
         """ retrieves data based on given arguments and not based on the key """
         key = self.get_key(args, kwargs)
         logging.debug('Want to retrieve key `%s`', key)
-        return self[key]
+        (data_array, args, kwargs, extra_data) = self[key]
+        
+        if 'obj_class' in extra_data:
+            # recreate the obj from storage
+            module =  import_module(extra_data['obj_module'])
+            cls = getattr(module, extra_data['obj_class'])
+            result = cls.storage_retrieve(data_array, extra_data['obj_props'])
+        else:
+            # assume that a simple numpy array was stored
+            result = data_array
+        
+        return (result, args, kwargs, extra_data)
 
     
     def store(self, result, args=None, kwargs=None, internal_data=None):
@@ -48,8 +68,21 @@ class StorageBase(object):
         if internal_data:
             extra_data.update(internal_data)
         
-        logging.debug('Want to store key `%s`', key)
-        self[key] = (result, args, kwargs, extra_data)
+        try:
+            # assume that result is an object that supports the storage protocol
+            data_array, properties = result.storage_prepare()
+            class_name = result.__class__.__name__
+            extra_data['obj_module'] = result.__class__.__module__ 
+            extra_data['obj_class'] = class_name
+            extra_data['obj_props'] = properties
+            logging.debug('Store object `%s` to key `%s`', class_name, key)
+            
+        except AttributeError:
+            # otherwise, we assume that it is already a simple numpy array
+            data_array = result
+            logging.debug('Store numpy array to key `%s`', key)
+        
+        self[key] = (data_array, args, kwargs, extra_data)
        
         
     def iterdata(self, kwargs):
@@ -75,6 +108,5 @@ class StorageBase(object):
 
         for key in remove:
             del self[key]
-        
 
         
