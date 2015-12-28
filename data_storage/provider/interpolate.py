@@ -24,12 +24,28 @@ class Interpolator(object):
         values """
         # make sure that the data is in the right shape
         self._points = np.asarray(points)
-        if self._points.ndim == 1:
+        logging.debug('Dim %s', self._points.shape)
+
+        if self._points.ndim < 2:
+            # input space is one dimensional
             self._points = self._points[:, None]
+            self.points_ndim = 1
+        elif self._points.ndim > 2:
+            # input space 
+            raise ValueError('Input data must have at most two dimensions.')
+        else:
+            # input space is  
+            self.points_ndim = 2
+            
+        logging.debug('Dim %g', self.points_ndim)
 
         self._values = np.asarray(values)
         if self._values.ndim == 1:
             self._values = self._values[:, None]
+            self.values_shape = tuple()
+        else:
+            self.values_shape = self._values.shape[1:]
+
 
         assert self._points.shape[0] == self._values.shape[0]
 
@@ -44,14 +60,17 @@ class Interpolator(object):
         """ get minimal distance of a given point to the support points """
         if self._points.size == 0:
             return np.inf
+        
         return spatial.distance.cdist(np.atleast_2d(self._points),
                                       np.atleast_2d(point)).min()
     
     
-    def interpolate(self, point):
+    def __call__(self, point):
         """ interpolate values at given point """
+        point = np.asarray(point)
+        
         if self._interpolator is None:
-            if self._points.shape[1] == 1:
+            if self.points_ndim == 1 or self._points.shape[1] == 1:
                 # one-dimensional interpolation
                 self._interpolator = interpolate.interp1d(
                           self._points.flat, self._values, axis=0, copy=False)
@@ -61,8 +80,17 @@ class Interpolator(object):
                 self._interpolator = interpolate.LinearNDInterpolator(
                                                     self._points, self._values)
         
-        return self._interpolator(point)
+        # determine the shape of the input points (without the interpolation
+        # dimension)
+        if self.points_ndim == 1:
+            input_shape = point.shape
+        else:
+            input_shape = point.shape[:-1] 
 
+        # reshape the output to produce correct dimensions
+        result_shape = input_shape + self.values_shape
+        return self._interpolator(point).reshape(result_shape)
+        
 
 
 class interpolated(object):
@@ -100,6 +128,8 @@ class interpolated(object):
                 points.append(np.array(c_args))
                 values.append(c_result)
                     
+            logging.info('Points = %s', points)
+                    
             self._interpolator = Interpolator(points, values)
             
         return self._interpolator
@@ -110,6 +140,7 @@ class interpolated(object):
         
         @functools.wraps(func)
         def func_wrapper(*args, **kwargs):
+            # get the kwargs that go into the cache key
             if self.ignore_kwargs:
                 kwargs_cache = {k: v
                                 for k, v in kwargs.iteritems()
@@ -120,7 +151,7 @@ class interpolated(object):
             # try to interpolate
             interpolator = self.get_interpolator(kwargs_cache)
             if interpolator.get_distance(args) <= self.max_distance:
-                return interpolator.interpolate(args)
+                return interpolator(args)
             else:
                 result = func(*args, **kwargs)
                 self.storage.store(result, args=args, kwargs=kwargs_cache)

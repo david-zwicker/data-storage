@@ -216,5 +216,3 @@ class TestFunctionCacheHDF5(TestFunctionCache):
         self.assertEqual(len(self.storage), 1)
         
         self.assertGreater(size1, size2)
-        
-
