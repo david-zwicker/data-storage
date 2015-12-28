@@ -95,12 +95,15 @@ class StorageBase(object):
         self[key] = (data_array, args, kwargs, extra_data)
        
         
-    def iterdata(self, kwargs):
+    def iterdata(self, kwargs, ret_extra_data=False):
         """ iterates through all data that is stored with the given kwargs """
         for value in self.itervalues():
-            c_result, c_args, c_kwargs, _ = value
+            c_result, c_args, c_kwargs, c_extra_data = value
             if c_kwargs == kwargs:
-                yield c_result, c_args, c_kwargs
+                if ret_extra_data:
+                    yield c_result, c_args, c_extra_data
+                else:
+                    yield c_result, c_args
         
         
     def clear(self, time_max=None, kwargs=None):

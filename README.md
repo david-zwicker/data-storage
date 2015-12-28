@@ -71,3 +71,23 @@ array and a structure that can be serialized using JSON. The class method
 `storage_retrieve` then receives these two objects and reconstructs the object.
 Instance of `SimpleResult` can now be returned by any function and will be
 cached correctly.
+
+If such custom objects should also be used with interpolated results, an extra
+method has to be defined to support the construction of objects from 
+interpolated data. Extending the example above, this could read
+
+    class SimpleResultInterpolated(SimpleResult):
+        """ simple object implementing the storage protocol with support for
+        interpolation """
+            
+        @classmethod
+        def create_from_interpolated(cls, data_array, args, extra_args):
+            """ create object from interpolated data """
+            return cls(data_array, extra_args)
+
+Here, `data_array` contains the interpolated data and `args` is a list of 
+arguments that were used for interpolation, i.e. the points at which the
+interpolated results were calculated. The additional argument `extra_args`
+contains the second item returned by a call to `storage_prepare` of one example
+of the object from which we interpolate. This data can be helpful to fully
+reconstruct the interpolated object.

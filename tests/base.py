@@ -46,6 +46,39 @@ def arrays_close(arr1, arr2, rtol=1e-05, atol=1e-08, equal_nan=False):
 
 
 
+class SimpleResult(object):
+    """ simple object for testing storing objects """
+     
+    def __init__(self, data, e=2):
+        """ create the simple object """
+        self.data = data
+        self.e = e
+        
+    def __repr__(self):
+        """ return string representing the object """
+        name = self.__class__.__name__
+        return '%s(data=%s, e=%s)' % (name, self.data, self.e)
+        
+    def storage_prepare(self):
+        """ prepare object for storage """
+        return self.data, self.e
+    
+    @classmethod
+    def storage_retrieve(cls, data_array, extra_data):
+        """ create object from retrieved data """
+        return cls(data_array, extra_data)
+    
+    @classmethod
+    def create_from_interpolated(cls, data_array, args, extra_args):
+        """ create object from interpolated data """
+        return cls(data_array, extra_args)
+    
+    def __eq__(self, other): 
+        """ compare objects using their attributes """
+        return self.__dict__ == other.__dict__    
+
+
+
 class TestBase(unittest.TestCase):
     """ extends the basic TestCase class with some convenience functions """ 
       

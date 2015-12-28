@@ -11,10 +11,10 @@ import tempfile
 from data_storage import StorageMemory, interpolated
 from data_storage.backend.hdf5 import StorageHDF5
 
-from .base import TestBase
+from .base import TestBase, SimpleResult
 
       
-      
+
 class TestFunctionInterpolation(TestBase):
     """ test caches using a simple dictionary as the storage backend """
 
@@ -161,6 +161,27 @@ class TestFunctionInterpolation(TestBase):
         self.assertEqual(len(self.storage), 2)
         self.assertAlmostEqual(a, 0.5*(1**2 + 2**3))
 
+   
+    def test_object(self):
+        """ test caching of objects """
+
+        def func(x, e=2):
+            return SimpleResult(x + e, e)
+
+        func_int = interpolated(self.storage, max_distance=0.6)(func)
+
+        a = func_int(1, e=2)
+        self.assertEqual(len(self.storage), 1)
+        self.assertEqual(a, func(1, 2))
+        
+        b = func_int(2, e=2)
+        self.assertEqual(len(self.storage), 2)
+        self.assertEqual(b, func(2, 2))
+        
+        c = func_int(1.5, e=2)
+        self.assertEqual(len(self.storage), 2)
+        self.assertAlmostEqual(c, func(1.5, 2))
+        
         
         
 class TestFunctionInterpolationHDF5(TestFunctionInterpolation):

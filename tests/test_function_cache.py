@@ -12,35 +12,7 @@ import tempfile
 
 from data_storage import StorageMemory, cached
 from data_storage.backend.hdf5 import StorageHDF5
-
-
-
-class SimpleResult(object):
-    """ simple object for testing storing objects """
-     
-    def __init__(self, data, e=2):
-        """ create the simple object """
-        self.data = data
-        self.e = e
-        
-    def __repr__(self):
-        """ return string representing the object """
-        name = self.__class__.__name__
-        return '%s(data=%s, e=%s)' % (name, self.data, self.e)
-        
-    def storage_prepare(self):
-        """ prepare object for storage """
-        return self.data, self.e
-    
-    @classmethod
-    def storage_retrieve(cls, data_array, extra_data):
-        """ create object from retrieved data """
-        return cls(data_array, extra_data)
-    
-    def __eq__(self, other): 
-        """ compare objects using their attributes """
-        return self.__dict__ == other.__dict__    
-
+from .base import SimpleResult
 
       
 class TestSimplestUsesage(unittest.TestCase):
@@ -160,25 +132,30 @@ class TestFunctionCache(unittest.TestCase):
     def test_object(self):
         """ test caching of objects """
          
-        @cached(self.storage)
         def square(x, e=2):
             return SimpleResult(x**e, e)
         
-        a = square(2, e=2)
+        square_cached = cached(self.storage)(square)
+        
+        a = square_cached(2, e=2)
         self.assertEqual(len(self.storage), 1)
         self.assertEqual(a, square(2, e=2))
 
-        b = square(2, e=3)
+        b = square_cached(2, e=3)
         self.assertEqual(len(self.storage), 2)
         self.assertEqual(b, square(2, e=3))
+
+        c = square_cached(2, e=2)
+        self.assertEqual(len(self.storage), 2)
+        self.assertEqual(c, square(2, e=2))
         
         self.storage.clear(kwargs={'e': 2})
         self.assertEqual(len(self.storage), 1)
         
-        self.assertEqual(b, square(2, e=3))
+        self.assertEqual(b, square_cached(2, e=3))
         self.assertEqual(len(self.storage), 1)        
 
-        self.assertEqual(a, square(2, e=2))
+        self.assertEqual(a, square_cached(2, e=2))
         self.assertEqual(len(self.storage), 2)  
         
                 

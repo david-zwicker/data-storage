@@ -12,6 +12,7 @@ import functools
 import numpy as np
 from scipy import interpolate, spatial
 
+from ..backend.base import import_module
 from ..backend.memory import StorageMemory
 
 
@@ -113,6 +114,7 @@ class interpolated(object):
         
         self._interpolator = None
         self._interpolator_kwargs = None
+        self._obj_extra_data = None
     
     
     def get_interpolator(self, kwargs):
@@ -124,9 +126,11 @@ class interpolated(object):
             points = []
             values = []
             
-            for c_result, c_args, _ in self.storage.iterdata(kwargs):
+            iterator = self.storage.iterdata(kwargs, ret_extra_data=True)
+            for c_result, c_args, c_extra_data in iterator:
                 points.append(np.array(c_args))
                 values.append(c_result)
+                self._obj_extra_data = c_extra_data #< store example extra data
                     
             logging.info('Points = %s', points)
                     
@@ -151,12 +155,23 @@ class interpolated(object):
             # try to interpolate
             interpolator = self.get_interpolator(kwargs_cache)
             if interpolator.get_distance(args) <= self.max_distance:
-                return interpolator(args)
+                # use the interpolator to get the result
+                result = interpolator(args)
+                if self._obj_extra_data.has_key('obj_class'):
+                    # result is an object and not just a numpy array
+                    extra_data = self._obj_extra_data
+                    module =  import_module(extra_data['obj_module'])
+                    cls = getattr(module, extra_data['obj_class'])
+                    result = cls.create_from_interpolated(
+                                          result, args, extra_data['obj_props'])
+                    
             else:
+                # recalculate the result since support points are too far
                 result = func(*args, **kwargs)
                 self.storage.store(result, args=args, kwargs=kwargs_cache)
                 self._interpolator = None #< devalidate interpolator
-                return result
+                
+            return result
             
         return func_wrapper
     
