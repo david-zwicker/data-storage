@@ -1,4 +1,5 @@
 # data-storage
+
 Package that manages data persistently. This package focuses on sets of
 numerical data, where each dataset consists of a single numpy array and some
 auxiliary, descriptive data. 
@@ -7,7 +8,9 @@ The package supports multiple different backends and different data providers.
 Data providers can for instance be function caches or interpolators, which
 calculate the value of a function based on stored data.
 
+
 ## Simple Usage
+
 
 ### Initializing storage
 
@@ -27,7 +30,7 @@ initialized by
 where `filename` points to a file where the database is stored
 
 
-### Using storage
+### Use storage
 
 The simplest way to use storage is in a function cache. We provide a decorator
 `cached`, which can be used as follows
@@ -43,6 +46,12 @@ can be cached. In particular, the function arguments must be JSON-serializable.
 Additionally, the return type of the function should be numeric, i.e. a simple
 number or a numpy array. If the function returns an object, this object must
 implement the storage protocol described in the next section.
+
+
+
+## Advanced Usage
+
+This section covers some advanced topics.
 
 
 ### Storage protocol for serializing objects
@@ -94,9 +103,6 @@ contains the second item returned by a call to `storage_prepare` of one example
 of the object from which we interpolate. This data can be helpful to fully
 reconstruct the interpolated object.
 
-## Advanced Usage
-
-This section covers some advanced topics.
 
 ### Interpolating caching decorator
 
