@@ -54,6 +54,26 @@ implement the storage protocol described in the next section.
 This section covers some advanced topics.
 
 
+### Interpolating caching decorator
+
+Despite the caching decorator, we also supply a special decorator which
+interpolates between already calculated results. It can be used in a very
+similar fashion to the cached decorator, but it will not calculate the function
+for data points that are close to already calculated ones, but instead use these
+data to (linearly) interpolate the result. A simple result reads
+
+
+    @interpolated(StorageMemory(), max_distance=0.6)
+    def func(x):
+        return x**2
+    
+For instance, if `func(1)` and `func(2)` were called, a subsequent call to
+`func(1.5)` will not evoke the calculation, but instead interpolate between the
+previous two results and return 2.5 instead of 2.25.
+Note that we only interpolate the result when it is closer than `max_distance` 
+to a previously calculated result.
+
+
 ### Storage protocol for serializing objects
 
 To support more flexible result types, we also support arbitrary python objects
@@ -104,21 +124,3 @@ of the object from which we interpolate. This data can be helpful to fully
 reconstruct the interpolated object.
 
 
-### Interpolating caching decorator
-
-Despite the caching decorator, we also supply a special decorator which
-interpolates between already calculated results. It can be used in a very
-similar fashion to the cached decorator, but it will not calculate the function
-for data points that are close to already calculated ones, but instead use these
-data to (linearly) interpolate the result. A simple result reads
-
-
-    @interpolated(StorageMemory(), max_distance=0.6)
-    def func(x):
-        return x**2
-    
-For instance, if `func(1)` and `func(2)` were called, a subsequent call to
-`func(1.5)` will not evoke the calculation, but instead interpolate between the
-previous two results and return 2.5 instead of 2.25.
-Note that we only interpolate the result when it is closer than `max_distance` 
-to a previously calculated result.
