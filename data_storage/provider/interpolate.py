@@ -25,7 +25,6 @@ class Interpolator(object):
         values """
         # make sure that the data is in the right shape
         self._points = np.asarray(points)
-        logging.debug('Dim %s', self._points.shape)
 
         if self._points.ndim < 2:
             # input space is one dimensional
@@ -37,8 +36,6 @@ class Interpolator(object):
         else:
             # input space is  
             self.points_ndim = 2
-            
-        logging.debug('Dim %g', self.points_ndim)
 
         self._values = np.asarray(values)
         if self._values.ndim == 1:
@@ -50,9 +47,9 @@ class Interpolator(object):
 
         assert self._points.shape[0] == self._values.shape[0]
 
-        logging.debug('Construct interpolator for function from R^%d to R^%d '
-                      'from %d points', self._points.shape[1],
-                      self._values.shape[1], self._points.shape[0])
+        logging.info('Construct interpolator for function from R^%d to R^%d '
+                     'from %d points', self._points.shape[1],
+                     self._values.shape[1], self._points.shape[0])
 
         self._interpolator = None
 
@@ -131,8 +128,8 @@ class interpolated(object):
                 points.append(np.array(c_args))
                 values.append(c_result)
                 self._obj_extra_data = c_extra_data #< store example extra data
-                    
-            logging.info('Points = %s', points)
+                
+            logging.debug('Found %d data points', len(values))
                     
             self._interpolator = Interpolator(points, values)
             

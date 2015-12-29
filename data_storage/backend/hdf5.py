@@ -132,7 +132,11 @@ class StorageHDF5(StorageBase):
         
         data_array = dataset[()]
         args = json.loads(dataset.attrs['args'])
+        if args is None:
+            args = tuple()
         kwargs = json.loads(dataset.attrs['kwargs'])
+        if kwargs is None:
+            kwargs = {}
         
         if with_internal:
             internal_data = json.loads(dataset.attrs['internal_data'])
