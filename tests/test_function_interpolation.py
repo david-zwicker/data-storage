@@ -81,26 +81,27 @@ class TestFunctionInterpolation(TestBase):
         self.assertEqual(len(self.storage), 0)
          
         @interpolated(self.storage, max_distance=0.75)
-        def func(x, y):
+        def func(point):
+            x, y = point
             return [x**2, y]
          
-        a = func(1, 1)
+        a = func((1, 1))
         self.assertEqual(len(self.storage), 1)
         self.assertEqual(a, [1**2, 1])
          
-        a = func(2, 1)
+        a = func((2, 1))
         self.assertEqual(len(self.storage), 2)
         self.assertEqual(a, [2**2, 1])
          
-        a = func(1, 2)
+        a = func((1, 2))
         self.assertEqual(len(self.storage), 3)
         self.assertEqual(a, [1**2, 2])
          
-        a = func(2, 2)
+        a = func((2, 2))
         self.assertEqual(len(self.storage), 4)
         self.assertEqual(a, [2**2, 2])
          
-        a = func(1.5, 1.5)
+        a = func((1.5, 1.5))
         self.assertEqual(len(self.storage), 4)
         self.assertAlmostEqual(a[0], 0.5*(1**2 + 2**2))
         self.assertAlmostEqual(a[1], 1.5)

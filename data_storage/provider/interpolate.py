@@ -44,12 +44,13 @@ class Interpolator(object):
         else:
             self.values_shape = self._values.shape[1:]
 
-
         assert self._points.shape[0] == self._values.shape[0]
 
-        logging.info('Construct interpolator for function from R^%d to R^%d '
-                     'from %d points', self._points.shape[1],
-                     self._values.shape[1], self._points.shape[0])
+        logging.info('Construct interpolator for function from %s to %s '
+                     'from %d points',
+                     ' x '.join('R^' + str(d) for d in self._points.shape[1:]),
+                     ' x '.join('R^' + str(d) for d in self._values.shape[1:]),
+                     self._points.shape[0])
 
         self._interpolator = None
 
@@ -66,7 +67,8 @@ class Interpolator(object):
     def __call__(self, point):
         """ interpolate values at given point """
         point = np.asarray(point)
-        
+        logging.debug('Interpolate at point=%s', point)
+
         if self._interpolator is None:
             if self.points_ndim == 1 or self._points.shape[1] == 1:
                 # one-dimensional interpolation
@@ -87,6 +89,7 @@ class Interpolator(object):
 
         # reshape the output to produce correct dimensions
         result_shape = input_shape + self.values_shape
+
         return self._interpolator(point).reshape(result_shape)
         
 
@@ -118,18 +121,37 @@ class interpolated(object):
         """ get the interpolator for the given kwargs """
         if self._interpolator is None or self._interpolator_kwargs != kwargs:
         
-            logging.debug('Construct interpolator for kwargs: %s', kwargs)
+            logging.debug('Construct interpolator for kwargs=%s', kwargs)
         
             points = []
             values = []
             
             iterator = self.storage.iterdata(kwargs, ret_extra_data=True)
+            value_shape = None
             for c_result, c_args, c_extra_data in iterator:
-                points.append(np.array(c_args))
+                # test the shape of the result for consistency
+                try:
+                    result_shape = c_result.shape
+                except AttributeError:
+                    # result does not have any shape
+                    pass
+                else:
+                    # test whether the shapes of all results are the same 
+                    if value_shape is None:
+                        value_shape = result_shape
+                    elif value_shape != result_shape:
+                        raise RuntimeError()
+                
+                # store the data necessary for interpolation
+                points.append(np.array(c_args[0]))
                 values.append(c_result)
                 self._obj_extra_data = c_extra_data #< store example extra data
                 
-            logging.debug('Found %d data points', len(values))
+            if value_shape is None:
+                value_shape = tuple()
+                
+            logging.debug('Found %d data points with shape %s',
+                          len(values), value_shape)
                     
             self._interpolator = Interpolator(points, values)
             
@@ -140,7 +162,7 @@ class interpolated(object):
         """ decorate the given function """
         
         @functools.wraps(func)
-        def func_wrapper(*args, **kwargs):
+        def func_wrapper(point, *args, **kwargs):
             # get the kwargs that go into the cache key
             if self.ignore_kwargs:
                 kwargs_cache = {k: v
@@ -151,9 +173,9 @@ class interpolated(object):
 
             # try to interpolate
             interpolator = self.get_interpolator(kwargs_cache)
-            if interpolator.get_distance(args) <= self.max_distance:
+            if interpolator.get_distance(point) <= self.max_distance:
                 # use the interpolator to get the result
-                result = interpolator(args)
+                result = interpolator(point)
                 if self._obj_extra_data.has_key('obj_class'):
                     # result is an object and not just a numpy array
                     extra_data = self._obj_extra_data
@@ -164,8 +186,10 @@ class interpolated(object):
                     
             else:
                 # recalculate the result since support points are too far
-                result = func(*args, **kwargs)
-                self.storage.store(result, args=args, kwargs=kwargs_cache)
+                logging.debug('Calculate result at point=%s', point)
+                result = func(point, *args, **kwargs)
+                args_full = (point,) + args
+                self.storage.store(result, args=args_full, kwargs=kwargs_cache)
                 self._interpolator = None #< devalidate interpolator
                 
             return result

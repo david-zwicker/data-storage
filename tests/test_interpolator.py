@@ -53,4 +53,13 @@ class TestFunctionInterpolation(TestBase):
         
         self.assertEqual(interp([0.01, 0.01]).shape, (3,))
         self.assertEqual(interp([[0.01, 0.01], [-0.01, -0.01]]).shape, (2, 3))
+              
+                
+    def test_1d_nmd(self):
+        """ test a simple 1d-nmd interpolation """
+
+        interp = Interpolator(np.arange(5), np.random.randn(5, 3, 2))
+        
+        self.assertEqual(interp(0.01).shape, (3, 2))
+        self.assertEqual(interp([0.01, 0.01]).shape, (2, 3, 2))
                 

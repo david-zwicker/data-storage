@@ -14,6 +14,7 @@ from data_storage import StorageMemory, cached
 from data_storage.backend.hdf5 import StorageHDF5
 from .base import SimpleResult
 
+
       
 class TestSimplestUsesage(unittest.TestCase):
     """ test caches using a simple dictionary as the storage backend """

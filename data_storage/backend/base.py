@@ -72,6 +72,12 @@ class StorageBase(object):
     
     def store(self, result, args=None, kwargs=None, internal_data=None):
         """ store data based on given arguments """
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = {}
+            
+        # generate the key for the database
         key = self.get_key(args, kwargs)
         
         extra_data = {'time_stored': time.time()}

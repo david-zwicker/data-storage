@@ -7,7 +7,9 @@ The package supports multiple different backends and different data providers.
 Data providers can for instance be function caches or interpolators, which
 calculate the value of a function based on stored data.
 
-## Initializing storage
+## Simple Usage
+
+### Initializing storage
 
 The simplest storage container is a python dictionary in memory, which will of 
 course not be persistent. It can be created by
@@ -25,7 +27,7 @@ initialized by
 where `filename` points to a file where the database is stored
 
 
-## Using storage
+### Using storage
 
 The simplest way to use storage is in a function cache. We provide a decorator
 `cached`, which can be used as follows
@@ -43,7 +45,7 @@ number or a numpy array. If the function returns an object, this object must
 implement the storage protocol described in the next section.
 
 
-## Storage protocol for serializing objects
+### Storage protocol for serializing objects
 
 To support more flexible result types, we also support arbitrary python objects
 as long as they support the storage protocol, which implements the serialization
@@ -91,3 +93,26 @@ interpolated results were calculated. The additional argument `extra_args`
 contains the second item returned by a call to `storage_prepare` of one example
 of the object from which we interpolate. This data can be helpful to fully
 reconstruct the interpolated object.
+
+## Advanced Usage
+
+This section covers some advanced topics.
+
+### Interpolating caching decorator
+
+Despite the caching decorator, we also supply a special decorator which
+interpolates between already calculated results. It can be used in a very
+similar fashion to the cached decorator, but it will not calculate the function
+for data points that are close to already calculated ones, but instead use these
+data to (linearly) interpolate the result. A simple result reads
+
+
+    @interpolated(StorageMemory(), max_distance=0.6)
+    def func(x):
+        return x**2
+    
+For instance, if `func(1)` and `func(2)` were called, a subsequent call to
+`func(1.5)` will not evoke the calculation, but instead interpolate between the
+previous two results and return 2.5 instead of 2.25.
+Note that we only interpolate the result when it is closer than `max_distance` 
+to a previously calculated result.
